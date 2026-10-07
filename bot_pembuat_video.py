@@ -12,8 +12,8 @@ TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
 def buat_naskah_dan_prompt():
    url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
-    headers = {'Content-Type': 'application/json'}
-    prompt_utama = """
+   headers = {'Content-Type': 'application/json'}
+   prompt_utama = """
     Buat 1 naskah cerita pendek misteri atau fantasi gelap untuk YouTube Shorts (durasi 30 detik).
     Format respon harus JSON murni tanpa markdown: {"naskah": "...", "prompt_gambar": "dark fantasy vector art, highly detailed, polaroid aesthetic,..."}
     """
