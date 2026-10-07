@@ -1,4 +1,5 @@
 import os
+import time
 import requests
 import json
 import asyncio
@@ -18,18 +19,29 @@ def buat_naskah_dan_prompt():
     Format respon harus JSON murni tanpa markdown: {"naskah": "...", "prompt_gambar": "dark fantasy vector art, highly detailed, polaroid aesthetic,..."}
     """
     data = {"contents": [{"parts": [{"text": prompt_utama}]}]}
-    response = requests.post(url, headers=headers, json=data)
     
-    # --- SISTEM PELAPORAN ERROR BARU ---
-    data_json = response.json()
-    if 'candidates' not in data_json:
-        print("\n[PESAN PENOLAKAN DARI GOOGLE]:")
-        print(data_json)
-        raise ValueError("Gagal mendapatkan naskah! Kemungkinan API Key salah atau tidak terbaca.")
-    # -----------------------------------
-        
-    hasil = data_json['candidates'][0]['content']['parts'][0]['text']
-    return json.loads(hasil.replace('```json', '').replace('```', '').strip())
+    # Sistem coba ulang (retry) 3 kali jika server Google sibuk atau koneksi terputus
+    for percobaan in range(3):
+        try:
+            response = requests.post(url, headers=headers, json=data, timeout=30)
+            
+            # --- SISTEM PELAPORAN ERROR ---
+            data_json = response.json()
+            if 'candidates' not in data_json:
+                print("\n[PESAN PENOLAKAN DARI GOOGLE]:")
+                print(data_json)
+                raise ValueError("Gagal mendapatkan naskah! Kemungkinan API Key salah atau limit habis.")
+            # ------------------------------
+                
+            hasil = data_json['candidates'][0]['content']['parts'][0]['text']
+            return json.loads(hasil.replace('```json', '').replace('```', '').strip())
+            
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            print(f"[AI] Jaringan terputus atau server sibuk. Mencoba ulang dalam 5 detik... (Percobaan {percobaan + 1}/3)")
+            time.sleep(5)
+            
+    # Jika gagal 3 kali berturut-turut
+    raise ValueError("Gagal terhubung ke Google setelah 3 kali percobaan. Coba lagi nanti.")
 
 async def buat_suara(teks, nama_file):
     communicate = edge_tts.Communicate(teks, "id-ID-ArdiNeural")
