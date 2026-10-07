@@ -1,0 +1,27 @@
+name: Pabrik Video Otomatis
+
+on:
+  schedule:
+    - cron: '0 5 * * *' # Menjalankan otomatis pada jam 12:00 siang WIB
+    - cron: '0 11 * * *' # Menjalankan otomatis pada jam 18:00 sore WIB
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Siapkan Mesin Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install Program Editing & AI
+        run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
+          pip install edge-tts requests
+      - name: Produksi & Kirim Video
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python bot_pembuat_video.py
