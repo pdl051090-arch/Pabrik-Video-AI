@@ -5,25 +5,25 @@ import edge_tts
 import urllib.parse
 import requests
 from datetime import datetime
-import google.generativeai as genai
+from google import genai
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
-# Menghubungkan langsung ke mesin utama Google AI Studio
-genai.configure(api_key=GEMINI_API_KEY)
-
 def buat_naskah_dan_prompt():
-    print("[AI] Menghubungi Google Generative AI...")
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    print("[AI] Menghubungi Google GenAI (SDK Baru)...")
+    client = genai.Client(api_key=GEMINI_API_KEY)
     
     prompt_utama = """
     Buat 1 naskah cerita pendek misteri atau fantasi gelap untuk YouTube Shorts (durasi 30 detik).
     Format respon harus JSON murni tanpa markdown: {"naskah": "...", "prompt_gambar": "dark fantasy vector art, highly detailed, polaroid aesthetic,..."}
     """
     
-    response = model.generate_content(prompt_utama)
+    response = client.models.generate_content(
+        model='gemini-3.8-flash',
+        contents=prompt_utama
+    )
     hasil = response.text.replace('```json', '').replace('```', '').strip()
     return json.loads(hasil)
 
@@ -46,7 +46,7 @@ def edit_video(audio_file, image_file, output_file):
     os.system(cmd)
 
 def kirim_ke_telegram(file_video):
-    print("[AI] Mengirim ke Telegram Bos...")
+    print("[AI] Mengirim ke Telegram...")
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendVideo"
     with open(file_video, 'rb') as video:
         requests.post(url, data={'chat_id': TELEGRAM_CHAT_ID}, files={'video': video})
