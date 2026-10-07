@@ -67,9 +67,11 @@ def kirim_ke_telegram(file_video):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendVideo"
     try:
         with open(file_video, 'rb') as video:
-            requests.post(url, data={'chat_id': TELEGRAM_CHAT_ID}, files={'video': video}, timeout=60)
+            response = requests.post(url, data={'chat_id': TELEGRAM_CHAT_ID}, files={'video': video}, timeout=60)
+            # Baris baru untuk mencetak alasan penolakan Telegram
+            print(f"[Laporan Kurir Telegram]: {response.text}")
     except Exception as e:
-        print(f"[AI] Gagal mengirim ke Telegram: {e}")
+        print(f"[AI] Sistem pengiriman error: {e}")
 
 async def eksekusi_utama():
     try:
