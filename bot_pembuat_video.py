@@ -1,4 +1,5 @@
 import os
+import time
 import json
 import asyncio
 import edge_tts
@@ -6,6 +7,7 @@ import urllib.parse
 import requests
 from datetime import datetime
 from google import genai
+from google.genai import errors
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
@@ -20,12 +22,24 @@ def buat_naskah_dan_prompt():
     Format respon harus JSON murni tanpa markdown: {"naskah": "...", "prompt_gambar": "dark fantasy vector art, highly detailed, polaroid aesthetic,..."}
     """
     
-    response = client.models.generate_content(
-        model='gemini-3.8-flash',
-        contents=prompt_utama
-    )
-    hasil = response.text.replace('```json', '').replace('```', '').strip()
-    return json.loads(hasil)
+    # Sistem antre otomatis: Mencoba hingga 5 kali jika server Google sedang sibuk
+    for percobaan in range(5):
+        try:
+            response = client.models.generate_content(
+                model='gemini-3.8-flash',
+                contents=prompt_utama
+            )
+            hasil = response.text.replace('```json', '').replace('```', '').strip()
+            return json.loads(hasil)
+            
+        except errors.ServerError as e:
+            print(f"[AI] Server Google Penuh/Sibuk (503). Menunggu 15 detik sebelum mencoba lagi... (Percobaan {percobaan + 1}/5)")
+            time.sleep(15)
+        except Exception as e:
+            print(f"[AI] Terjadi gangguan: {e}. Menunggu 10 detik...")
+            time.sleep(10)
+            
+    raise ValueError("Gagal mendapatkan naskah setelah 5 percobaan. Server Google sedang kelebihan beban berat. Biarkan jadwal otomatis GitHub yang mencoba lagi nanti.")
 
 async def buat_suara(teks, nama_file):
     print("[AI] Merekam Voiceover...")
