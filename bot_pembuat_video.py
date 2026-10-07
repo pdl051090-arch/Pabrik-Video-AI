@@ -14,7 +14,7 @@ TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
 def buat_naskah_dan_prompt():
-    print("[AI] Menghubungi Google GenAI (SDK Baru)...")
+    print("[AI] Menghubungi Google GenAI...")
     client = genai.Client(api_key=GEMINI_API_KEY)
     
     prompt_utama = """
@@ -22,8 +22,7 @@ def buat_naskah_dan_prompt():
     Format respon harus JSON murni tanpa markdown: {"naskah": "...", "prompt_gambar": "dark fantasy vector art, highly detailed, polaroid aesthetic,..."}
     """
     
-    # Sistem antre otomatis: Mencoba hingga 5 kali jika server Google sedang sibuk
-    for percobaan in range(5):
+    for percobaan in range(3):
         try:
             response = client.models.generate_content(
                 model='gemini-3.8-flash',
@@ -31,15 +30,11 @@ def buat_naskah_dan_prompt():
             )
             hasil = response.text.replace('```json', '').replace('```', '').strip()
             return json.loads(hasil)
-            
-        except errors.ServerError as e:
-            print(f"[AI] Server Google Penuh/Sibuk (503). Menunggu 15 detik sebelum mencoba lagi... (Percobaan {percobaan + 1}/5)")
-            time.sleep(15)
         except Exception as e:
-            print(f"[AI] Terjadi gangguan: {e}. Menunggu 10 detik...")
-            time.sleep(10)
+            print(f"[AI] Gagal menghubungi Google (Percobaan {percobaan+1}/3). Error: {e}")
+            time.sleep(5)
             
-    raise ValueError("Gagal mendapatkan naskah setelah 5 percobaan. Server Google sedang kelebihan beban berat. Biarkan jadwal otomatis GitHub yang mencoba lagi nanti.")
+    raise ValueError("Gagal mendapatkan naskah setelah 3 percobaan.")
 
 async def buat_suara(teks, nama_file):
     print("[AI] Merekam Voiceover...")
@@ -50,9 +45,17 @@ def buat_gambar(prompt, nama_file):
     print("[AI] Menggambar Visual...")
     teks_url = urllib.parse.quote(prompt)
     url = f"https://image.pollinations.ai/prompt/{teks_url}?width=1080&height=1920&nologo=true"
-    response = requests.get(url)
-    with open(nama_file, 'wb') as f:
-        f.write(response.content)
+    
+    # Menambahkan batas waktu maksimal (timeout) 30 detik agar tidak stuck selamanya
+    try:
+        response = requests.get(url, timeout=30)
+        with open(nama_file, 'wb') as f:
+            f.write(response.content)
+    except requests.exceptions.RequestException as e:
+        print(f"[AI] Pembuat gambar error/lambat: {e}")
+        # Jika gagal menggambar, kita buat gambar darurat berwarna hitam
+        os.system(f"ffmpeg -f lavfi -i color=c=black:s=1080x1920 -frames:v 1 {nama_file}")
+        print("[AI] Menggunakan gambar darurat (hitam).")
 
 def edit_video(audio_file, image_file, output_file):
     print("[AI] Merakit Video...")
@@ -62,20 +65,26 @@ def edit_video(audio_file, image_file, output_file):
 def kirim_ke_telegram(file_video):
     print("[AI] Mengirim ke Telegram...")
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendVideo"
-    with open(file_video, 'rb') as video:
-        requests.post(url, data={'chat_id': TELEGRAM_CHAT_ID}, files={'video': video})
+    try:
+        with open(file_video, 'rb') as video:
+            requests.post(url, data={'chat_id': TELEGRAM_CHAT_ID}, files={'video': video}, timeout=60)
+    except Exception as e:
+        print(f"[AI] Gagal mengirim ke Telegram: {e}")
 
 async def eksekusi_utama():
-    ide = buat_naskah_dan_prompt()
-    waktu = datetime.now().strftime("%Y%m%d_%H%M%S")
-    file_audio = f"a_{waktu}.mp3"
-    file_gambar = f"g_{waktu}.jpg"
-    file_video = f"v_{waktu}.mp4"
-    
-    await buat_suara(ide["naskah"], file_audio)
-    buat_gambar(ide["prompt_gambar"], file_gambar)
-    edit_video(file_audio, file_gambar, file_video)
-    kirim_ke_telegram(file_video)
+    try:
+        ide = buat_naskah_dan_prompt()
+        waktu = datetime.now().strftime("%Y%m%d_%H%M%S")
+        file_audio = f"a_{waktu}.mp3"
+        file_gambar = f"g_{waktu}.jpg"
+        file_video = f"v_{waktu}.mp4"
+        
+        await buat_suara(ide["naskah"], file_audio)
+        buat_gambar(ide["prompt_gambar"], file_gambar)
+        edit_video(file_audio, file_gambar, file_video)
+        kirim_ke_telegram(file_video)
+    except Exception as e:
+        print(f"\n[FATAL ERROR] Sistem berhenti: {e}")
 
 if __name__ == "__main__":
     asyncio.run(eksekusi_utama())
