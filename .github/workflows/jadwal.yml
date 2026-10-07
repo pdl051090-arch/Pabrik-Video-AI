@@ -20,7 +20,7 @@ jobs:
       - name: Install Program Editing & AI
         run: |
           sudo apt-get update && sudo apt-get install -y ffmpeg
-          pip install edge-tts requests google-generativeai
+          pip install edge-tts requests google-genai
           
       - name: Produksi & Kirim Video
         env:
