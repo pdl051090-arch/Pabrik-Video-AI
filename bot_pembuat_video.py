@@ -13,14 +13,22 @@ TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 def buat_naskah_dan_prompt():
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
     headers = {'Content-Type': 'application/json'}
-    # Mengarahkan AI untuk memproduksi naskah dengan gaya visual dark fantasy/polaroid
     prompt_utama = """
     Buat 1 naskah cerita pendek misteri atau fantasi gelap untuk YouTube Shorts (durasi 30 detik).
     Format respon harus JSON murni tanpa markdown: {"naskah": "...", "prompt_gambar": "dark fantasy vector art, highly detailed, polaroid aesthetic,..."}
     """
     data = {"contents": [{"parts": [{"text": prompt_utama}]}]}
     response = requests.post(url, headers=headers, json=data)
-    hasil = response.json()['candidates'][0]['content']['parts'][0]['text']
+    
+    # --- SISTEM PELAPORAN ERROR BARU ---
+    data_json = response.json()
+    if 'candidates' not in data_json:
+        print("\n[PESAN PENOLAKAN DARI GOOGLE]:")
+        print(data_json)
+        raise ValueError("Gagal mendapatkan naskah! Kemungkinan API Key salah atau tidak terbaca.")
+    # -----------------------------------
+        
+    hasil = data_json['candidates'][0]['content']['parts'][0]['text']
     return json.loads(hasil.replace('```json', '').replace('```', '').strip())
 
 async def buat_suara(teks, nama_file):
