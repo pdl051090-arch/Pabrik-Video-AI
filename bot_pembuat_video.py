@@ -11,7 +11,7 @@ TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
 def buat_naskah_dan_prompt():
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key={GEMINI_API_KEY}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={GEMINI_API_KEY}"
     headers = {'Content-Type': 'application/json'}
     prompt_utama = """
     Buat 1 naskah cerita pendek misteri atau fantasi gelap untuk YouTube Shorts (durasi 30 detik).
