@@ -2,8 +2,7 @@ name: Pabrik Video Otomatis
 
 on:
   schedule:
-    - cron: '0 5 * * *' # Berjalan otomatis setiap jam 13:00 WITA (05:00 UTC)
-    - cron: '0 11 * * *' # Berjalan otomatis setiap jam 19:00 WITA (11:00 UTC)
+    - cron: '0 23,11 * * *'
   workflow_dispatch: # Tombol manual untuk menjalankan skrip kapan saja
 
 jobs:
